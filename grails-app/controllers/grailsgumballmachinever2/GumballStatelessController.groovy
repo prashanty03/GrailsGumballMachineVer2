@@ -55,9 +55,9 @@ class GumballStatelessController {
 			flash.serial = gumball.serialNumber ;
 			msg = flash.state+flash.model+flash.serial+flash.ts+secretKey
 			hash = hmac_sha256(secretKey, msg)
-			println("Message : "+msg)
-			println("Hash : "+hash)
 			flash.hash = hash.encodeBase64();
+			println("Message : "+msg)
+			println("Hash : "+hash.encodeBase64())
 			// report a message to user
 			flash.message = gumballMachine.getAbout()
 
@@ -91,6 +91,8 @@ class GumballStatelessController {
 			def long tsl = Long.parseLong(ts)
 			def long cts = System.currentTimeMillis()
 			def dif = cts - tsl
+			println("Difference : "+dif)
+			println("State : "+state)
 			def String msg = state+modelNum+serialNum+ts+secretKey
 			def hashBytes = hmac_sha256(secretKey, msg)
 			def hashNew = hashBytes.encodeBase64().toString()
@@ -99,10 +101,14 @@ class GumballStatelessController {
 			println("Message : "+msg)
 			
 			def invalidTS = ((dif/1000) > 120)
-			def invalidHash = (hashOld != hashNew)
+			def invalidHash = !(hashOld.toString().equalsIgnoreCase(hashNew))
 			
 			if(invalidTS || invalidHash ){
 				
+				flash.message = "Inconsistent State!!"
+
+			}
+			else{
 				gumballMachine = new GumballMachine(modelNum, serialNum) ;
 				
 				gumballMachine.setCurrentState(state) ;
@@ -135,14 +141,17 @@ class GumballStatelessController {
 				flash.state = gumballMachine.getCurrentState() ;
 				flash.model = modelNum ;
 				flash.serial = serialNum ;
-				flash.hash = var;
+				flash.ts = cts;
+				def String msg1 = flash.state+flash.model+flash.serial+cts+secretKey
+				def hashBytes1 = hmac_sha256(secretKey, msg1)
+				def hashNew1 = hashBytes1.encodeBase64().toString()
+				println("msg1 ##"+msg1)
+				println("ts##"+cts)
+				println("New ## "+hashNew1)
+				flash.hash = hashNew1;
 							
 				// report a message to user
 				flash.message = gumballMachine.getAbout()
-			
-			}
-			else{
-				flash.message = "Inconsistent State!!"	
 			}
 						// render view
 			render(view: "index")
